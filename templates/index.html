@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+<meta charset="UTF-8">
+<title>法律翻译质量评估平台</title>
+
+<style>
+/* ======================
+   全局样式重置与基础设置
+====================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body{
+    font-family:"Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+    line-height: 1.6;
+    margin:0;
+    background:
+        linear-gradient(
+            rgba(22, 34, 50, 0.9),
+            rgba(28, 45, 65, 0.95)
+        ),
+        url("https://images.unsplash.com/photo-1557683316-973673baf926");
+    background-size:cover;
+    background-attachment:fixed;
+    background-position:center;
+    color: #243447;
+}
+
+/* ======================
+   中央卡片
+====================== */
+.container{
+    width: 90%;
+    max-width: 900px;
+    margin: 60px auto;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 16px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ======================
+   标题样式
+====================== */
+h1{
+    text-align: center;
+    color: #1a2a3a;
+    margin-bottom: 40px;
+    font-size: 2.2rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    position: relative;
+    padding-bottom: 15px;
+}
+
+h1::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, #3e5c76, #5a7b9c);
+    border-radius: 3px;
+}
+
+h2{
+    color: #2c3e50;
+    border-left: 6px solid #3e5c76;
+    padding: 8px 15px;
+    margin: 35px 0 20px;
+    font-size: 1.4rem;
+    font-weight: 500;
+    background: rgba(62, 92, 118, 0.05);
+    border-radius: 0 6px 6px 0;
+}
+
+/* ======================
+   标签与输入框样式
+====================== */
+label {
+    display: block;
+    margin-top: 20px;
+    font-weight: 500;
+    color: #2c3e50;
+    font-size: 15px;
+}
+
+textarea{
+    width: 100%;
+    padding: 16px;
+    margin-top: 8px;
+    border-radius: 8px;
+    border: 1px solid #e1e7ed;
+    font-size: 15px;
+    resize: vertical;
+    background: #f8fafc;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #3e5c76;
+    box-shadow: 0 0 0 3px rgba(62, 92, 118, 0.1);
+    background: #ffffff;
+}
+
+textarea::placeholder {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+/* ======================
+   按钮样式
+====================== */
+button{
+    margin-top: 20px;
+    background: linear-gradient(135deg, #3e5c76, #2c445a);
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 12px rgba(62, 92, 118, 0.2);
+}
+
+button:hover{
+    background: linear-gradient(135deg, #2c445a, #1e3040);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(62, 92, 118, 0.3);
+}
+
+button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(62, 92, 118, 0.2);
+}
+
+/* ======================
+   结果展示区
+====================== */
+.result-box{
+    margin-top: 25px;
+    background: #f0f5fa;
+    border-left: 6px solid #3e5c76;
+    padding: 20px;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    min-height: 100px;
+    font-size: 15px;
+    color: #1a2a3a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+/* ======================
+   上传区域
+====================== */
+.upload-box{
+    margin-top: 30px;
+    padding: 30px;
+    background: #f8fafc;
+    border: 2px dashed #94a3b8;
+    border-radius: 10px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.upload-box:hover {
+    border-color: #3e5c76;
+    background: #f0f5fa;
+}
+
+.upload-box input[type="file"] {
+    margin: 10px 0;
+    padding: 8px;
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+/* ======================
+   页脚
+====================== */
+footer{
+    text-align: center;
+    margin-top: 40px;
+    color: #64748b;
+    font-size: 14px;
+    padding-top: 20px;
+    border-top: 1px solid #e1e7ed;
+}
+
+/* ======================
+   加载状态
+====================== */
+.loading{
+    color: #3e5c76;
+    font-weight: 600;
+    display: inline-block;
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* ======================
+   响应式适配
+====================== */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+        padding: 25px;
+        margin: 30px auto;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    h2 {
+        font-size: 1.2rem;
+    }
+    
+    .upload-box {
+        padding: 20px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>⚖️ 法律翻译质量评估平台</h1>
+
+<h2>单条翻译评估</h2>
+
+<label>源文本（中文）</label>
+<textarea id="source" rows="4" placeholder="请输入中文法律文本..."></textarea>
+
+<label>译文（英文）</label>
+<textarea id="translation" rows="4" placeholder="请输入英文译文..."></textarea>
+
+<button id="evalBtn">开始评估</button>
+
+<div class="result-box" id="result">
+评估结果将在这里显示...
+</div>
+
+<h2>Excel 批量评估</h2>
+
+<div class="upload-box">
+<form action="/upload" method="post" enctype="multipart/form-data">
+    <input type="file" name="file" required accept=".xlsx, .xls">
+    <br>
+    <button type="submit">上传并生成评估结果</button>
+</form>
+</div>
+
+<footer>
+Legal Translation Evaluation Platform · Powered by DeepSeek
+</footer>
+
+</div>
+
+<script>
+/* ======================
+   调用后端评估
+====================== */
+document.getElementById("evalBtn").addEventListener("click", async () => {
+    const source = document.getElementById("source").value.trim();
+    const translation = document.getElementById("translation").value.trim();
+    const resultBox = document.getElementById("result");
+
+    if(!source || !translation){
+        alert("请填写完整的源文本和译文内容！");
+        return;
+    }
+
+    // 加载状态动画
+    resultBox.innerHTML = "<span class='loading'>⏳ 正在调用 DeepSeek 评估，请稍候...</span>";
+
+    const formData = new FormData();
+    formData.append("source", source);
+    formData.append("translation", translation);
+
+    try{
+        const response = await fetch("/evaluate",{
+            method:"POST",
+            body:formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`请求失败：${response.status}`);
+        }
+
+        const data = await response.json();
+        resultBox.innerText = data.result || "✅ 评估完成，但未返回具体结果";
+
+    }catch(error){
+        console.error("评估出错：", error);
+        resultBox.innerHTML = "❌ 评估失败，请检查服务器连接或稍后重试。<br>错误信息：" + error.message;
+    }
+});
+</script>
+
+</body>
+</html>
