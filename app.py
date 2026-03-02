@@ -1,73 +1,151 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, jsonify, send_file
 import pandas as pd
 import os
 import time
+from openai import OpenAI
 
-from evaluator import DeepSeekEvaluator
+# =====================
+# Flask App
+# =====================
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = "uploads"
-OUTPUT_FOLDER = "outputs"
+# =====================
+# DeepSeek API
+# =====================
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
-API_KEY = "sk-ac079804b0c94bad97eae4eef039d3e8"
+client = OpenAI(
+    api_key=API_KEY,
+    base_url="https://api.deepseek.com"
+)
 
-evaluator = DeepSeekEvaluator(API_KEY)
+
+# =====================
+# DeepSeek Evaluator
+# =====================
+
+def evaluate_translation(source_text, translated_text):
+
+    prompt = f"""
+你是一名法律翻译专家，请从以下方面评估法律翻译：
+
+- 准确性
+- 流畅性
+- 风格一致性
+- 术语准确与一致
+- 逻辑结构完整再现
+- 文化概念处理
+
+源文本：{source_text}
+
+译文：{translated_text}
+
+评分规则：
+Critical 扣25分
+Major 扣10分
+Minor 扣1分
+
+输出格式必须严格如下：
+
+最终得分：[分数]/100
+错误评析：
+- [Critical/Major/Minor]>错误类型>译文错误片段
+示例1： 
+源文本：民事主体从事民事活动，不得违反法律，不得违背公序良俗。 
+译文：The parties to civil legal relations shall not conduct civil activities in violation of the law, nor contrary to public order and good morals. 
+输出结果： 最终得分：90/100 
+-Major>语法错误> conduct 是动词，nor contrary 是形容词，语法错误。 
+示例2： 源文本：研究开发人取得专利权的，委托人可以依法实施该专利。 
+译文：Where the developer is granted a patent, the commissioning party may exploit such patent gratuitously. 
+输出结果： 最终得分：90/100 
+-Major>错译-用词错误> gratuitously 意为自愿地，免费地，源文本中为“依法”， 语义偏差，翻译错误
+"""
+
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[{"role": "user", "content": prompt}],
+        stream=False,
+        timeout=240
+    )
+
+    return response.choices[0].message.content.strip()
 
 
+# =====================
 # 首页
+# =====================
+
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
+# =====================
 # 单条评估
+# =====================
+
 @app.route("/evaluate", methods=["POST"])
 def evaluate():
 
-    source = request.form["source"]
-    translation = request.form["translation"]
+    source = request.form.get("source")
+    translation = request.form.get("translation")
 
-    result = evaluator.evaluate_translation(source, translation)
+    if not source or not translation:
+        return jsonify({"result": "请输入完整文本"})
 
-    return {"result": result}
+    try:
+        result = evaluate_translation(source, translation)
+        return jsonify({"result": result})
+
+    except Exception as e:
+        return jsonify({"result": f"评估失败：{str(e)}"})
 
 
-# Excel批量评估
+# =====================
+# Excel 批量评估
+# =====================
+
 @app.route("/upload", methods=["POST"])
 def upload():
 
-    file = request.files["file"]
+    file = request.files.get("file")
 
-    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(filepath)
+    if not file:
+        return "未上传文件"
 
-    df = pd.read_excel(filepath)
+    df = pd.read_excel(file)
 
     results = []
 
     for _, row in df.iterrows():
-        res = evaluator.evaluate_translation(
-            row["source_text"],
-            row["translated_text"]
-        )
-        results.append(res)
-        time.sleep(1)
+
+        try:
+            response = evaluate_translation(
+                row["source_text"],
+                row["translated_text"]
+            )
+
+        except Exception as e:
+            response = f"ERROR: {str(e)}"
+
+        results.append(response)
+
+        time.sleep(1)  # 防止速率限制
 
     df["DeepSeek评估"] = results
 
-    output_path = os.path.join(
-        OUTPUT_FOLDER,
-        "评估结果.xlsx"
-    )
-
+    output_path = "evaluation_result.xlsx"
     df.to_excel(output_path, index=False)
 
     return send_file(output_path, as_attachment=True)
 
 
+# =====================
+# Render 启动入口
+# =====================
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)v
