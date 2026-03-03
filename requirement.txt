@@ -1,6 +1,5 @@
 flask
-pandas
-openai
-tqdm
-openpyxl
 gunicorn
+requests
+pandas
+openpyxl
