@@ -11,22 +11,27 @@ from openai import OpenAI
 app = Flask(__name__)
 
 # =====================
-# DeepSeek API
+# DeepSeek API 初始化（安全版）
 # =====================
 
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
-client = OpenAI(
-    api_key=API_KEY,
-    base_url="https://api.deepseek.com"
-)
+client = None
 
+if API_KEY:
+    client = OpenAI(
+        api_key=API_KEY,
+        base_url="https://api.deepseek.com"
+    )
 
 # =====================
 # DeepSeek Evaluator
 # =====================
 
 def evaluate_translation(source_text, translated_text):
+
+    if not client:
+        return "错误：未配置 DEEPSEEK_API_KEY"
 
     prompt = f"""
 你是一名法律翻译专家，请从以下方面评估法律翻译：
@@ -52,11 +57,13 @@ Minor 扣1分
 最终得分：[分数]/100
 错误评析：
 - [Critical/Major/Minor]>错误类型>译文错误片段
+
 示例1： 
 源文本：民事主体从事民事活动，不得违反法律，不得违背公序良俗。 
 译文：The parties to civil legal relations shall not conduct civil activities in violation of the law, nor contrary to public order and good morals. 
-输出结果： 最终得分：90/100 
+输出结果： 最终得分：90/100
 -Major>语法错误> conduct 是动词，nor contrary 是形容词，语法错误。 
+
 示例2： 源文本：研究开发人取得专利权的，委托人可以依法实施该专利。 
 译文：Where the developer is granted a patent, the commissioning party may exploit such patent gratuitously. 
 输出结果： 最终得分：90/100 
@@ -72,7 +79,6 @@ Minor 扣1分
 
     return response.choices[0].message.content.strip()
 
-
 # =====================
 # 首页
 # =====================
@@ -80,7 +86,6 @@ Minor 扣1分
 @app.route("/")
 def index():
     return render_template("index.html")
-
 
 # =====================
 # 单条评估
@@ -101,7 +106,6 @@ def evaluate():
 
     except Exception as e:
         return jsonify({"result": f"评估失败：{str(e)}"})
-
 
 # =====================
 # Excel 批量评估
@@ -132,7 +136,7 @@ def upload():
 
         results.append(response)
 
-        time.sleep(1)  # 防止速率限制
+        time.sleep(1)
 
     df["DeepSeek评估"] = results
 
@@ -141,12 +145,10 @@ def upload():
 
     return send_file(output_path, as_attachment=True)
 
-
 # =====================
-# Render 启动入口
+# Railway 启动入口
 # =====================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
